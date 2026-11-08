@@ -18,5 +18,12 @@ pipeline {
       }
     }
   }
-  post { success { echo 'AMIYA build aur deploy ho gaya.' } failure { echo 'Build fail hua, console log dekho.' } }
+  post {
+    success {
+        echo 'AMIYA build aur deploy ho gaya.'
+    }
+    failure {
+        echo 'Build fail hua, console log dekho.'
+    }
+}
 }
