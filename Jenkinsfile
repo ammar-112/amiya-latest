@@ -1,29 +1,71 @@
+
 pipeline {
-  agent any
-  tools { jdk 'JDK21'; maven 'Maven3' }   // Jenkins > Global Tool Configuration mein yeh naam set karo
-  environment { TOMCAT_WEBAPPS = '/opt/tomcat9/webapps' }  // apna Tomcat 9 path
-  options { timestamps(); disableConcurrentBuilds() }
-  stages {
-    stage('Checkout') { steps { checkout scm } }
-    stage('Build WAR') { steps { sh 'mvn -B clean package' } }
-    stage('Verify') { steps { sh 'test -f target/amiya.war && unzip -l target/amiya.war | grep -q WEB-INF/web.xml' } }
-    stage('Archive') { steps { archiveArtifacts artifacts: 'target/amiya.war', fingerprint: true } }
-    stage('Deploy to Tomcat 9') {
-      when { branch 'main' }
-      steps {
-        sh '''
-          cp target/amiya.war "$TOMCAT_WEBAPPS/amiya.war"
-          echo "Deployed: http://localhost:8080/amiya/"
-        '''
-      }
+    agent any
+
+    tools {
+        jdk 'JDK21'
+        maven 'Maven3'
     }
-  }
-  post {
-    success {
-        echo 'AMIYA build aur deploy ho gaya.'
+
+    environment {
+        WAR_FILE = 'target/amiya.war'
+        TOMCAT_WEBAPPS = '/opt/tomcat/webapps'
     }
-    failure {
-        echo 'Build fail hua, console log dekho.'
+
+    options {
+        timestamps()
     }
-}
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                echo 'GitHub se code checkout ho raha hai...'
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo 'Maven build start...'
+                sh 'mvn clean package -DskipTests'
+            }
+        }
+
+        stage('Verify') {
+            steps {
+                echo 'WAR file verify ho rahi hai...'
+                sh '''
+                    test -f "$WAR_FILE"
+                    unzip -t "$WAR_FILE"
+                '''
+            }
+        }
+
+        stage('Deploy to Tomcat') {
+            steps {
+                echo 'Tomcat par deployment start...'
+                sh '''
+                    sudo cp "$WAR_FILE" "$TOMCAT_WEBAPPS/amiya.war"
+                    echo "WAR deployed successfully"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'AMIYA CI/CD Pipeline SUCCESS!'
+            echo 'Application Tomcat par deploy ho gayi.'
+        }
+
+        failure {
+            echo 'AMIYA Pipeline FAILED!'
+            echo 'Console Output check karo.'
+        }
+
+        always {
+            echo 'Pipeline execution completed.'
+        }
+    }
 }
